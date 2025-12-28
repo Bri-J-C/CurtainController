@@ -9,184 +9,133 @@
 | ESP32-C3 Super Mini | 1 | Development board with onboard USB-C |
 | A4988 Stepper Driver | 1 | Includes heat sink recommended |
 | Bipolar Stepper Motor | 1 | NEMA 17 typical, 200 steps/rev |
-| 12V Power Supply | 1 | 2A minimum, 3A+ recommended |
-| 5V Power Supply | 1 | For ESP32 (USB or buck converter) |
-| Electrolytic Capacitor | 1 | 100µF 25V, across motor power |
-| Jumper Wires | ~15 | Male-to-female or dupont |
+| 12-24V Power Supply | 1 | 2A minimum, 3A+ recommended |
+| Buck Converter | 1 | For ESP32 and A4899 Power |
+
+
 
 ### Optional Components
 
 | Component | Purpose |
 |-----------|---------|
 | Heat Sink | For A4988 driver cooling |
-| Buck Converter | Step down 12V to 5V for ESP32 |
 | Enclosure | Project box for finished installation |
 | Screw Terminals | Easier motor connection |
-| PCB | Custom board for permanent installation |
+| Electrolytic Capacitor (Optional) | 1 | 100µF 25V, across motor power |
 
 ## A4988 Driver Module
 
 ### Pinout
 ```
            ┌─────────┐
-    ENABLE │1      16│ VDD (3-5.5V logic)
+    ENABLE │1      16│ VMOT (12-24V)
        MS1 │2      15│ GND
        MS2 │3      14│ 2B (Motor coil 2)
        MS3 │4      13│ 2A (Motor coil 2)
      RESET │5      12│ 1A (Motor coil 1)
      SLEEP │6      11│ 1B (Motor coil 1)
-      STEP │7      10│ VMOT (8-35V motor)
+      STEP │7      10│ VDD (5V)
        DIR │8       9│ GND
            └─────────┘
 ```
 
 ### Power Connections
-- **VMOT & GND (motor power):** 12V supply for stepper motor
-- **VDD & GND (logic power):** 5V from ESP32 (or 3.3V)
-- **Add 100µF capacitor** between VMOT and GND near driver
+- **VMOT & GND (motor power):** 12-30V supply for stepper motor
+- **VDD & GND (logic power):** 5V from ESP32/buck converter
+- **(Optional)Add 100µF capacitor** between VMOT and GND near driver
 
 ### Current Limit Adjustment
 The A4988 has a potentiometer for current limiting:
 1. Measure motor's rated current (typically 1-2A per phase)
 2. Set to 70% of rated current initially
 3. Adjust if motor:
-   - Too hot → Decrease current
-   - Skipping steps → Increase current
-4. Formula: `Vref = Current × 8 × Rcs` (Rcs typically 0.1Ω)
+   -Not enough torque to move curtains.
+   -Adjust until quiet with enough power.
 
 ## ESP32-C3 Super Mini
 
 ### Pinout Reference
 ```
-         USB-C
-    ┌──────────────┐
-    │   ┌────┐     │
-    │   └────┘     │
-    │              │
- 0  │●            ●│ 5V
- 1  │●            ●│ GND
- 2  │●            ●│ 3V3
- 3  │●            ●│ 10
- 4  │●            ●│ 9  (BOOT)
- 5  │●            ●│ 8  (LED)
- 6  │●            ●│ 7
-    │              │
-    └──────────────┘
+          ┌──────────────────────────────────┐
+          │              ┌────┐              │
+          │              └────┘              │
+       5  │●                                ●│ 5V
+       6  │●                                ●│ GND
+       7  │●                                ●│ 3V3
+ (LED) 8  │●                                ●│ 4
+(BOOT) 9  │●                                ●│ 3
+       10 │●                                ●│ 2  
+       20 │●                                ●│ 1
+       21 │●                                ●│ 0
+          └──────────────────────────────────┘
 ```
-
-### Important Notes
-- GPIO 8: Onboard blue LED (inverted logic)
-- GPIO 9: Onboard BOOT button
-- GPIO 0: Boot strapping pin (has internal pull-up)
-- All GPIOs are 3.3V logic level
+ 
 
 ## Wiring Diagram
 
-### Text-Based Connection Map
+### Text-Based Connection Map (gameFAQ style) 
+#### IMPORTANT NOTES
+           -  This view is from the top down. wiring is done from underneath so it will be opposite in practice
+           -  Used headers to socket the componnents so they could be removed
+           -  Pulled the pins out of the socket NOT the esp32 for GPIO pins 20 and 21 to make wiring easier as they are not needed
+
+wiring goes under the componenets
 
 ```
-ESP32-C3          A4988 Driver          Stepper Motor
---------          ------------          -------------
-GPIO 0  ────────► ENABLE
-GPIO 1  ────────► MS1
-GPIO 2  ────────► MS2
-GPIO 3  ────────► MS3
-GPIO 4  ────────► RESET
-GPIO 6  ────────► DIR
-GPIO 7  ────────► SLEEP
-GPIO 10 ────────► STEP
-
-3.3V or 5V ─────► VDD
-GND      ────────► GND (logic)
-
-12V PSU+ ───┬───► VMOT
-            │
-         [100µF]
-            │
-12V PSU- ───┴───► GND (motor)
-                   GND (logic)
-
-                   1A ─────────► Coil 1 Wire A (BLK)
-                   1B ─────────► Coil 1 Wire B (GRN)
-                   2A ─────────► Coil 2 Wire A (RED)
-                   2B ─────────► Coil 2 Wire B (BLU)
+                               
+              ┌──────────────────────────────────┐
+              │              ┌────┐              │
+              │              └────┘              │
+            5 │●             ESP32C3            ●│ 5V---------------┐
+         ┌--6-|●                                ●│-GND--┐           |
+         |  7 │●-----┐                          ●│ 3V3  |           |
+         |  8 │●     |     ┌--------------------●│ 4    |           |
+         |  9 │●     |     |     ┌ -------------●│ 3    |           |
+         | 10 │●     |     |     |    ┌---------●│ 2    |           |
+         | 20 │●     |     |     |    |    ┌----●│ 1    |           | 
+         | 21 │●     |     |     |    |    |    ●│ 0    |           |
+         |    └|─────|─────|─────|────|────|────|┘    ┌─|───────────|─┐    
+         |     |     |     |     |    |    |    |  GND| ●           ● |5V+
+         |     |     |     |     |    |    |    |     | |           | |
+         |     |     |     |     |    |    |    |     | |           | |
+         |     |     |     |     |    |    |    |     | |           | |
+        DIR  STEP  SLEEP RESET  MS3  MS2  MS1   EN    | |   BUCK    | |
+         8     7     6      5     4    3    2    1    | | Converter | |
+        ┌─────────────────────────────────────────┐   | |           | |
+        | ┌---------------------------------------|---|-┘           | |
+        │ |   ┌-----------------------------------|---|-------------┘ |
+        │ |   |           A4988           +-------│---|-● GND    V+ ● |
+        │ |   |                           |       │   └─────────────|─┘
+        └─|───|───────────────────────────|───────┘        ┌--------┘
+          9   10    11   12    13   14   15    16----------+
+         GND  VDD   1B   1A    2A   2B   GND   VMOT   ┌────|─┐
+                     |    └-┐ ┌-┘   |    └------------|-●  ● | 2Pin Connector
+                     └----┐ | | ┌---┘                 └─|──|─┘
+                          ● ● ● ●                       |  |                                     
+                  Pins for Motor Connector            GND  +12-24v       
+                                                    ┌───|──|──────┐
+                                                    | PowerSupply |
+                                                    └─────────────┘
 ```
 
-### Connection Steps
-
-1. **Power the A4988:**
-   - Connect 12V PSU positive to VMOT
-   - Connect 12V PSU negative to GND (motor ground)
-   - Add 100µF capacitor across VMOT and GND
-   - Connect ESP32 3.3V or 5V to A4988 VDD
-   - Connect ESP32 GND to A4988 GND (logic ground)
-   - **Ground must be common between ESP32 and A4988**
-
-2. **Connect Control Signals:**
-   - GPIO 0 → ENABLE
-   - GPIO 1 → MS1
-   - GPIO 2 → MS2
-   - GPIO 3 → MS3
-   - GPIO 4 → RESET
-   - GPIO 6 → DIR
-   - GPIO 7 → SLEEP
-   - GPIO 10 → STEP
-
-3. **Connect Motor:**
-   - Identify motor coils (typically color-coded)
-   - Coil 1 → 1A and 1B
-   - Coil 2 → 2A and 2B
-   - Use multimeter to verify coil pairs (continuity test)
-
-4. **Test Connection:**
-   - Power on ESP32 (via USB)
-   - Motor should NOT move (ENABLE is HIGH)
-   - LED should be ON
-   - Connect to WebSerial and test commands
-
-## Motor Identification
-
-### Finding Coil Pairs
-
-Bipolar stepper motors have 4 wires forming 2 coils. To identify:
-
-1. **Using Multimeter (Continuity/Resistance mode):**
-   - Test between wire pairs
-   - Same coil: Low resistance (~2-20Ω) with continuity beep
-   - Different coils: No continuity (open circuit)
-   - Example: If BLK-GRN beeps, and RED-BLU beeps, you have your pairs
-
-2. **Using Motor Datasheet:**
-   - Check manufacturer specifications
-   - Common patterns:
-     - Wire colors: A-A', B-B'
-     - Terminals: 1-2, 3-4
 
 ### Motor Specifications
 
 Typical NEMA 17 stepper specs:
 - **Steps per revolution:** 200 (1.8° per step)
-- **Voltage:** 12V
+- **Voltage:** 12-24V
 - **Current per phase:** 1.0-2.0A
 - **Holding torque:** 40-60 Ncm
 - **Resistance:** 2-4Ω per coil
 
-## Power Supply Sizing
+### Power Supply Sizing
+- **Minimum:** 12V 2A
+- **Maximum:** 24v 3A
 
-### Motor Power (12V)
-- **Minimum:** Motor current × 1.5
-  - Example: 1.5A motor = 2.25A supply
-- **Recommended:** Motor current × 2
-  - Allows headroom for startup current
-  - Example: 1.5A motor = 3A supply
-- **Voltage:** Match motor rating (typically 12V)
-
-### ESP32 Power (5V or 3.3V)
+### ESP32 Power (5V)
 - **Current draw:** ~200-300mA typical
-- **Options:**
-  1. USB power (easiest for testing)
-  2. Buck converter from 12V motor supply
-  3. Separate 5V wall adapter
+  1. Buck converter from 12-24V motor supply
+
 
 ### Ground Connection
 **CRITICAL:** ESP32 ground and A4988 ground must be connected together (common ground). Otherwise:
@@ -216,61 +165,34 @@ Typical NEMA 17 stepper specs:
    - Rigid mounting to window frame or wall
    - Use motor mounting bracket
    - Ensure shaft is aligned with curtain rod/pulley
-   - Minimize vibration transmission
+   - Minimize vibration transmission - i used the rubber stoppers for cabinets. i got a pack of like 500 on amazon for a couple bucks
 
 2. **Cable Management:**
-   - Use flexible cable for motor wires
-   - Avoid sharp bends near motor
+   - Avoid sharp bends
    - Secure cables to prevent snagging
-   - Consider cable chain for moving parts
-
-3. **Coupling:**
-   - Shaft coupler between motor and curtain mechanism
-   - GT2 pulley/belt system common for curtains
-   - 3D printed adapters often used
-   - Ensure no backlash in coupling
 
 ## Safety Considerations
 
 - **Electrical:**
   - Use proper wire gauge for motor current
   - Secure all connections
-  - Add fuse in 12V supply line
-  - Ensure waterproof enclosure if near moisture
 
 - **Mechanical:**
-  - Test motor direction before mounting
-  - Add end stops to prevent over-travel
   - Ensure curtain won't bind or jam
-  - Child safety: keep cords and moving parts inaccessible
+  - Reduce friction where possible
 
 - **Thermal:**
   - Ensure adequate ventilation
   - Monitor temperatures during first operation
   - Don't enclose in sealed box without cooling
 
-## Testing Checklist
-
-Before final installation:
-
-- [ ] Verify all wiring connections
-- [ ] Check power supply voltages
-- [ ] Test motor rotation both directions
-- [ ] Verify WebSerial access
-- [ ] Test MQTT connectivity
-- [ ] Confirm motor doesn't overheat
-- [ ] Test emergency stop function
-- [ ] Verify position tracking accuracy
-- [ ] Test factory reset procedure
-- [ ] Document final configuration settings
-
 ## Troubleshooting Hardware Issues
 
 ### Motor Not Moving
-1. Check 12V power supply is connected
+1. Check power supply is connected
 2. Verify A4988 has both VMOT and VDD powered
 3. Check common ground connection
-4. Test with multimeter: VMOT should read 12V
+4. Test with multimeter: VMOT should read powersupply Voltage
 5. Verify motor coil connections (swap if needed)
 
 ### Motor Vibrating/Noisy
@@ -278,6 +200,8 @@ Before final installation:
 2. Increase microstepping mode
 3. Check motor mounting is rigid
 4. Verify no mechanical binding
+5. Add rubber stoppers between mount and motor
+6. decrease the current through POT on a4988
 
 ### Excessive Heat
 1. Reduce A4988 current limit
