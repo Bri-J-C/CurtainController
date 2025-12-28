@@ -1,0 +1,294 @@
+# CurtainController
+
+ESP32-C3 based smart curtain controller with MQTT integration, Home Assistant discovery, and WebSerial control interface.
+
+## Features
+
+- **MQTT Integration** - Full MQTT support with Home Assistant auto-discovery
+- **WebSerial Control** - Browser-based control and configuration interface
+- **Motor Control** - Precise stepper motor control with configurable microstepping
+- **OTA Updates** - Over-the-air firmware updates
+- **Position Tracking** - Persistent position storage across reboots
+- **Motor Sleep** - Automatic motor sleep after inactivity to reduce power and heat
+- **LED Control** - Manual control of onboard STATUS LED
+- **Factory Reset** - 5-second button press for complete device reset
+- **WiFi Manager** - Easy WiFi configuration via captive portal
+
+## Hardware Requirements
+
+### Core Components
+- **ESP32-C3 Super Mini** development board
+- **A4988 Stepper Motor Driver** module
+- **Bipolar Stepper Motor** (200 steps/revolution typical)
+- **12V Power Supply** (2A+ recommended for motor)
+- **5V Power Supply** for ESP32 (USB or regulator from 12V)
+
+### Optional
+- Capacitor (100µF) across motor power supply for stability
+- Heat sink for A4988 driver
+
+## Pin Mapping
+
+| Function | ESP32-C3 GPIO | A4988 Pin |
+|----------|---------------|-----------|
+| ENABLE | 0 | EN |
+| MS1 (Microstep 1) | 1 | MS1 |
+| MS2 (Microstep 2) | 2 | MS2 |
+| MS3 (Microstep 3) | 3 | MS3 |
+| RESET | 4 | RST |
+| DIRECTION | 6 | DIR |
+| SLEEP | 7 | SLP |
+| STATUS LED | 8 | (Onboard LED) |
+| RESET BUTTON | 9 | (Onboard BOOT button) |
+| STEP | 10 | STEP |
+
+### Motor Wiring
+Connect your bipolar stepper motor to the A4988:
+- **Coil 1** → A4988 terminals 1A & 1B
+- **Coil 2** → A4988 terminals 2A & 2B
+
+**If motor runs backwards:** Swap wires of ONE coil only (either 1A/1B or 2A/2B, not both).
+
+## Installation
+
+### Arduino IDE Setup
+
+1. **Install ESP32 Board Support:**
+   - File → Preferences → Additional Board Manager URLs
+   - Add: `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`
+   - Tools → Board → Boards Manager → Search "ESP32" → Install
+
+2. **Install Required Libraries:**
+   ```
+   - WiFiManager by tzapu
+   - PubSubClient by Nick O'Leary
+   - ArduinoJson by Benoit Blanchon
+   - ESPAsyncWebServer by lacamera
+   - AsyncTCP by dvarrel
+   - MycilaWebSerial by Mathieu Carbou
+   ```
+
+3. **Board Configuration:**
+   - Board: "ESP32C3 Dev Module"
+   - Upload Speed: 921600
+   - USB CDC On Boot: "Enabled"
+   - Flash Size: 4MB
+
+4. **Upload:**
+   - Open `CurtainController.ino`
+   - Select correct COM port
+   - Click Upload
+
+## Initial Setup
+
+### First Boot - WiFi Configuration
+
+1. Power on the ESP32-C3
+2. Connect to WiFi network: `ESP32-Curtain-Setup`
+3. Password: `12345678`
+4. Captive portal opens automatically
+5. Configure:
+   - WiFi SSID and password
+   - Device hostname
+   - MQTT broker IP and port
+   - MQTT username/password (optional)
+   - MQTT root topic (e.g., `home/bedroom/curtain`)
+   - Steps per revolution (default: 2000)
+   - OTA password (optional)
+6. Click Save
+7. Device reboots and connects to your WiFi
+
+### WebSerial Access
+
+Once connected to WiFi:
+1. Open browser to: `http://<device-ip>/webserial`
+2. Or use hostname: `http://<hostname>.local/webserial`
+3. Type `help` to see all available commands
+
+### MQTT Topics
+
+The controller uses the following MQTT topic structure (based on your configured root topic):
+
+- **Command Topic:** `<root>/cmd` - Send commands here
+- **Status Topic:** `<root>/status` - Current status (opening/closing/open/closed/partial/online/offline)
+- **Position Topic:** `<root>/position` - Current position (0-100%)
+- **Config Topic:** `<root>/cmd/config` - Configuration requests
+
+### Home Assistant Discovery
+
+The controller automatically publishes Home Assistant MQTT discovery on first connection:
+- Discovery topic: `homeassistant/cover/<hostname>/config`
+- Appears as a "Cover" entity in Home Assistant
+- Supports: open, close, stop, set position
+
+## Configuration
+
+### Motor Configuration
+
+Default settings work for most applications, but can be adjusted:
+
+| Parameter | Default | Range | Command |
+|-----------|---------|-------|---------|
+| Speed | 2000 µs/step | 2-10000 | `set:speed:<value>` |
+| Microstepping | 1/16 | 0-4 | `set:mode:<0-4>` |
+| Steps/Revolution | 2000 | 1-20000 | `set:steps:<value>` |
+| Sleep Timeout | 30000 ms | 0-300000 | `set:sleep:<value>` |
+
+### Microstepping Modes
+
+| Mode | Resolution | Description |
+|------|-----------|-------------|
+| 0 | Full step (1/1) | Coarse, loud, high torque |
+| 1 | Half step (1/2) | Medium smoothness |
+| 2 | Quarter step (1/4) | Smoother operation |
+| 3 | Eighth step (1/8) | Very smooth |
+| 4 | Sixteenth step (1/16) | Smoothest, quietest (recommended) |
+
+### Finding Optimal Speed
+
+1. Start with default: `set:speed:2000`
+2. Test movement: `open` then `close`
+3. Gradually decrease: `set:speed:1500`, test again
+4. Continue lowering until motor:
+   - Makes grinding noises
+   - Skips steps
+   - Stalls under load
+5. Increase by 200-400µs for safety margin
+6. Typical range: 300-500µs for quiet, reliable operation
+
+## Commands
+
+### Movement Commands
+```
+open                    - Open curtain fully
+close                   - Close curtain fully
+stop                    - Stop current movement
+position:<steps>        - Move to specific position (0 to steps_per_revolution)
+```
+
+### Configuration Commands
+```
+set:speed:<us>          - Set speed (2-10000 microseconds per step)
+set:mode:<0-4>          - Set microstepping mode
+set:steps:<n>           - Set steps per revolution (1-20000)
+set:position:<n>        - Reset current position counter
+set:sleep:<ms>          - Set motor sleep timeout (0-300000 ms)
+set:hostname:<name>     - Set device hostname (requires reboot)
+```
+
+### Information Commands
+```
+status                  - Show current system status
+config                  - Show configuration
+wifi                    - Show WiFi information
+mqtt                    - Show MQTT information
+```
+
+### Utility Commands
+```
+reset_driver            - Pulse A4988 RESET pin
+ha_discovery            - Republish Home Assistant discovery
+restart                 - Restart ESP32
+led:on                  - Turn STATUS LED on
+led:off                 - Turn STATUS LED off
+help                    - Show command list
+```
+
+### MQTT Commands
+
+Send commands via MQTT to `<root>/cmd` topic:
+```
+open
+close
+stop
+<position_percentage>   - Send number 0-100 to set position
+```
+
+## Factory Reset
+
+Hold the onboard BOOT button (GPIO 9) for 5 seconds:
+1. LED starts blinking after 1 second (hold)
+2. LED blinks rapidly 10 times after 5 seconds (reset confirmed)
+3. All settings cleared, WiFi reset
+4. Device reboots into setup mode
+
+## Troubleshooting
+
+### Motor Not Moving
+- Check power supply (12V, 2A+)
+- Verify wiring connections
+- Check motor sleep timeout: `set:sleep:0` (disable sleep)
+- Test with slower speed: `set:speed:3000`
+
+### Motor Running Backwards
+- Swap ONE coil's wires (1A/1B or 2A/2B, not both)
+- Or invert direction in code (contact maintainer)
+
+### Position Drift
+- Motor is missing steps
+- Increase step delay: `set:speed:3000`
+- Increase microstepping: `set:mode:4`
+- Check for mechanical binding
+- Ensure adequate power supply
+
+### WiFi Connection Issues
+- Hold BOOT button 5 seconds for factory reset
+- Reconnect to `ESP32-Curtain-Setup` network
+- Reconfigure WiFi settings
+
+### MQTT Not Connecting
+- Check broker IP: `mqtt` command in WebSerial
+- Verify broker is running and accessible
+- Check username/password if authentication enabled
+- Verify topic permissions on broker
+
+### WebSerial Not Responding
+- Clear browser cache
+- Try different browser (Chrome/Edge recommended)
+- Check device IP address is correct
+- Ensure on same network as ESP32
+
+### Home Assistant Not Discovering
+- Republish discovery: `ha_discovery` command
+- Check MQTT integration is configured in HA
+- Verify discovery prefix is `homeassistant`
+- Check MQTT broker logs for published messages
+
+### OpenHAB Showing Offline
+- OpenHAB may require regular status updates
+- Check availability topic configuration
+- Verify MQTT thing configuration matches topics
+- Monitor MQTT broker to see published messages
+
+## Technical Details
+
+### Position Tracking
+- Position saved every 50 steps during movement
+- Final position saved when movement completes
+- Position restored from flash on boot
+- Protected against power loss during movement
+
+### Motor Protection
+- Automatic sleep after configurable timeout (default 30s)
+- Reduces power consumption and motor heating
+- Motor wakes automatically before movement
+
+### Safety Features
+- Movement timeout: 2 minutes (prevents runaway)
+- Watchdog timer: 3 minutes (auto-recovery from hangs)
+- Overflow-safe timing (handles micros() rollover)
+- Factory reset lockout during movement
+
+### Performance
+- Constant speed movement (no acceleration/deceleration)
+- Configurable step delay: 2-10000 microseconds
+- Maximum step rate: ~500,000 steps/second (2µs delay)
+- Practical limits: 300-500µs for reliable operation
+
+## License
+
+MIT License - See LICENSE file for details
+
+## Version History
+
+See CHANGELOG.md for version history and changes.
