@@ -1,6 +1,6 @@
 # CurtainController
 
-ESP32-C3 based smart curtain controller with MQTT integration, Home Assistant discovery, and WebSerial control interface.
+ESP32-C3 based smart curtain controller with MQTT integration, Wifi Configuration, Home Assistant discovery, and WebSerial control interface, and OTA.
 
 ## Features
 
@@ -14,18 +14,31 @@ ESP32-C3 based smart curtain controller with MQTT integration, Home Assistant di
 - **Factory Reset** - 5-second button press for complete device reset
 - **WiFi Manager** - Easy WiFi configuration via captive portal
 
-## Hardware Requirements
-
 ### Core Components
-- **ESP32-C3 Super Mini** development board
-- **A4988 Stepper Motor Driver** module
-- **Bipolar Stepper Motor** (200 steps/revolution typical)
-- **12V Power Supply** (2A+ recommended for motor)
-- **5V Power Supply** for ESP32 (USB or regulator from 12V)
+- **ESP32-C3 Super Mini** development board https://a.co/d/arRZOZd
+- **A4988 Stepper Motor Driver** module https://a.co/d/e3AHq4l
+- **Bipolar Stepper Motor** (200 steps/revolution typical) https://a.co/d/01f4S5y
+- **12-24V Power Supply** (2A+ recommended for motor) i have a ton of these laying around.
+- **Buck Converter** for ESP32 5v Power https://a.co/d/2wXIIM7
+- **Perf Board** Used this kit, which included headers, pins, and terminal blocks which are all necessary for this project. https://a.co/d/gyRBBOJ
 
 ### Optional
-- Capacitor (100µF) across motor power supply for stability
-- Heat sink for A4988 driver
+- Capacitor (100µF) across motor power supply for stability ( i didnt use but read youre supposed to)
+- Heat sink for A4988 driver (Comes with module linked)
+
+### Curtain Compononents 
+- **Curtains**
+- **Curtain Tracks** Need to be as low friction as possible to take full advantage of quiet motor operation. https://a.co/d/g6LfgsY
+- **GT2 Timing Belt 6mm Width** used as the pulley to move curtains (comes with kit linked) https://a.co/d/j7nmHD5
+- **5mm Bore Belt Pulley Wheel** Pulley attached to motor(comes with kit linked) https://a.co/d/j7nmHD5
+- **5mm Idler Pulley** Pulley on shaft(Comes with kit linked) https://a.co/d/j7nmHD5
+- **Belt Tensioner** Used to take slack out of belt (Comes with kit linked) https://a.co/d/j7nmHD5
+- **Belt Clamp** Used to hold the belt together (Comes with kit linked) https://a.co/d/j7nmHD5
+- **5mm Shaft** used to hold the idler pulled https://a.co/d/gsGsmQL
+- **5mm Flanged Shaft Coupler** used to hold shaft for idler https://a.co/d/18vFdbL
+- **Stepper Motor Mount** used to hold stepper motor to wall https://a.co/d/9G7hsNz
+- **Shaft coupler mount**  used to hold idler components to wall ( i custom made this out of the old curtain rod holder i had drilling a hole for screws)
+
 
 ## Pin Mapping
 
