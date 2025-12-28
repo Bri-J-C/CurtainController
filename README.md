@@ -26,14 +26,14 @@ ESP32-C3 based smart curtain controller with MQTT integration, Wifi Configuratio
 - Capacitor (100µF) across motor power supply for stability ( i didnt use but read youre supposed to)
 - Heat sink for A4988 driver (Comes with module linked)
 
-### Curtain Compononents 
+### Curtain Components 
 - **Curtains**
 - **Curtain Tracks** Need to be as low friction as possible to take full advantage of quiet motor operation. https://a.co/d/g6LfgsY
-- **GT2 Timing Belt 6mm Width** used as the pulley to move curtains (comes with kit linked) https://a.co/d/j7nmHD5
-- **5mm Bore Belt Pulley Wheel** Pulley attached to motor(comes with kit linked) https://a.co/d/j7nmHD5
-- **5mm Idler Pulley** Pulley on shaft(Comes with kit linked) https://a.co/d/j7nmHD5
-- **Belt Tensioner** Used to take slack out of belt (Comes with kit linked) https://a.co/d/j7nmHD5
-- **Belt Clamp** Used to hold the belt together (Comes with kit linked) https://a.co/d/j7nmHD5
+- **GT2 Timing Belt 6mm Width** used as the pulley to move curtains (comes with kit linked) https://a.co/d/hmIUbOe
+- **5mm Bore Belt Pulley Wheel** Pulley attached to motor(comes with kit linked) https://a.co/d/hmIUbOe
+- **5mm Idler Pulley** Pulley on shaft(Comes with kit linked) https://a.co/d/hmIUbOe
+- **Belt Tensioner** Used to take slack out of belt (Comes with kit linked) https://a.co/d/hmIUbOe
+- **Belt Clamp** Used to hold the belt together (Comes with kit linked) https://a.co/d/hmIUbOe
 - **5mm Shaft** used to hold the idler pulled https://a.co/d/gsGsmQL
 - **5mm Flanged Shaft Coupler** used to hold shaft for idler https://a.co/d/18vFdbL
 - **Stepper Motor Mount** used to hold stepper motor to wall https://a.co/d/9G7hsNz
@@ -60,7 +60,7 @@ Connect your bipolar stepper motor to the A4988:
 - **Coil 1** → A4988 terminals 1A & 1B
 - **Coil 2** → A4988 terminals 2A & 2B
 
-**If motor runs backwards:** Swap wires of ONE coil only (either 1A/1B or 2A/2B, not both).
+**If motor runs backwards:** turn the connector over and plug it back in.
 
 ## Installation
 
@@ -105,7 +105,7 @@ Connect your bipolar stepper motor to the A4988:
    - Device hostname
    - MQTT broker IP and port
    - MQTT username/password (optional)
-   - MQTT root topic (e.g., `home/bedroom/curtain`)
+   - MQTT root topic (e.g., `home/bedroom/curtain`) child topics will be created from this in code ie: home/bedroom/curtain/(status && position && cmd)
    - Steps per revolution (default: 2000)
    - OTA password (optional)
 6. Click Save
@@ -140,21 +140,22 @@ The controller automatically publishes Home Assistant MQTT discovery on first co
 
 Default settings work for most applications, but can be adjusted:
 
+**speed really means delay between steps i was too lazy to fix**
 | Parameter | Default | Range | Command |
 |-----------|---------|-------|---------|
 | Speed | 2000 µs/step | 2-10000 | `set:speed:<value>` |
 | Microstepping | 1/16 | 0-4 | `set:mode:<0-4>` |
-| Steps/Revolution | 2000 | 1-20000 | `set:steps:<value>` |
+| Steps/Revolution | 2000 | 1-100000 | `set:steps:<value>` |
 | Sleep Timeout | 30000 ms | 0-300000 | `set:sleep:<value>` |
 
 ### Microstepping Modes
 
 | Mode | Resolution | Description |
 |------|-----------|-------------|
-| 0 | Full step (1/1) | Coarse, loud, high torque |
-| 1 | Half step (1/2) | Medium smoothness |
-| 2 | Quarter step (1/4) | Smoother operation |
-| 3 | Eighth step (1/8) | Very smooth |
+| 0 | Full step (1/1) | louder, high torque |
+| 1 | Half step (1/2) | |
+| 2 | Quarter step (1/4) | |
+| 3 | Eighth step (1/8) | |
 | 4 | Sixteenth step (1/16) | Smoothest, quietest (recommended) |
 
 ### Finding Optimal Speed
@@ -166,8 +167,7 @@ Default settings work for most applications, but can be adjusted:
    - Makes grinding noises
    - Skips steps
    - Stalls under load
-5. Increase by 200-400µs for safety margin
-6. Typical range: 300-500µs for quiet, reliable operation
+5. Typical range: 800-1500µs for quiet, reliable operation ive found
 
 ## Commands
 
@@ -230,19 +230,19 @@ Hold the onboard BOOT button (GPIO 9) for 5 seconds:
 ### Motor Not Moving
 - Check power supply (12V, 2A+)
 - Verify wiring connections
+- Check POT on motor controller if set too low it wont move
 - Check motor sleep timeout: `set:sleep:0` (disable sleep)
-- Test with slower speed: `set:speed:3000`
 
 ### Motor Running Backwards
-- Swap ONE coil's wires (1A/1B or 2A/2B, not both)
-- Or invert direction in code (contact maintainer)
+- unplug the motor and flip the connector over, plug back in.
 
 ### Position Drift
 - Motor is missing steps
-- Increase step delay: `set:speed:3000`
+- Increase step delay: `set:speed:2000`
 - Increase microstepping: `set:mode:4`
 - Check for mechanical binding
 - Ensure adequate power supply
+- Reduce as much friction on the track/curtains against window,couch etc
 
 ### WiFi Connection Issues
 - Hold BOOT button 5 seconds for factory reset
@@ -296,7 +296,7 @@ Hold the onboard BOOT button (GPIO 9) for 5 seconds:
 - Constant speed movement (no acceleration/deceleration)
 - Configurable step delay: 2-10000 microseconds
 - Maximum step rate: ~500,000 steps/second (2µs delay)
-- Practical limits: 300-500µs for reliable operation
+- Practical limits: 500-2100µs for reliable operation
 
 ## License
 
