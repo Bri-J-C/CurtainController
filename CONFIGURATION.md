@@ -1,8 +1,9 @@
 ## Motor Configuration
 
-Default settings work for most applications, but can be adjusted:
+Default settings work but should be adjusted:
 
-**speed really means delay between steps i was too lazy to fix**
+     **speed really means delay between steps i was too lazy to fix**
+
 | Parameter | Default | Range | Command |
 |-----------|---------|-------|---------|
 | Speed | 2000 µs/step | 2-10000 | `set:speed:<value>` |
@@ -29,7 +30,9 @@ Default settings work for most applications, but can be adjusted:
    - Makes grinding noises
    - Skips steps
    - Stalls under load
-5. Typical range: 800-1500µs for quiet, reliable operation ive found
+5. Typical range: 500-1500µs for quiet, reliable operation ive found
+6. Using the POT on the motor controller will GREATLY determine the volume of operation. aim for JUST enough power to move the curtains
+   while still being able to move the curtains.
 
 
 ## Troubleshooting
