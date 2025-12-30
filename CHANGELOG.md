@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.1] - 2024-12-28
+## [4.1] - 2025-12-28
 
 ### Added
 - Manual LED control commands (`led:on`, `led:off`)
@@ -33,7 +33,7 @@ All notable changes to this project will be documented in this file.
 - LED control now properly overrides all automatic behaviors
 - micros() overflow handling for long-running operations
 
-## [4.0] - 2024-12-24
+## [4.0] - 2025-12-24
 
 ### Added
 - Complete code refactor for maintainability
