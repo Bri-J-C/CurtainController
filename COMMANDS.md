@@ -1,6 +1,8 @@
 # Command Reference
 
-Complete reference for all available commands via WebSerial and MQTT.
+Complete reference for all available commands via WebSerial and MQTT. 
+
+Entering "help" in webserial will list all available commands.
 
 ## WebSerial Commands
 
