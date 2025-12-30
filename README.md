@@ -14,83 +14,11 @@ ESP32-C3 based smart curtain controller with MQTT integration, Wifi Configuratio
 - **Factory Reset** - 5-second button press for complete device reset
 - **WiFi Manager** - Easy WiFi configuration via captive portal
 
-### Core Components
-- **ESP32-C3 Super Mini** development board https://a.co/d/arRZOZd
-- **A4988 Stepper Motor Driver** module https://a.co/d/e3AHq4l
-- **Bipolar Stepper Motor** (200 steps/revolution typical) https://a.co/d/01f4S5y
-- **12-24V Power Supply** (2A+ recommended for motor) i have a ton of these laying around.
-- **Buck Converter** for ESP32 5v Power https://a.co/d/2wXIIM7
-- **Perf Board** Used this kit, which included headers, pins, and terminal blocks which are all necessary for this project. https://a.co/d/gyRBBOJ
 
-### Optional
-- Capacitor (100µF) across motor power supply for stability ( i didnt use but read youre supposed to)
-- Heat sink for A4988 driver (Comes with module linked)
+## Parts List And Construction
+[Hardware Page](https://github.com/Bri-J-C/CurtainController/blob/main/HARDWARE.md)
 
-### Curtain Components 
-- **Curtains**
-- **Curtain Tracks** Need to be as low friction as possible to take full advantage of quiet motor operation. https://a.co/d/g6LfgsY
-- **GT2 Timing Belt 6mm Width** used as the pulley to move curtains (comes with kit linked) https://a.co/d/hmIUbOe
-- **5mm Bore Belt Pulley Wheel** Pulley attached to motor(comes with kit linked) https://a.co/d/hmIUbOe
-- **5mm Idler Pulley** Pulley on shaft(Comes with kit linked) https://a.co/d/hmIUbOe
-- **Belt Tensioner** Used to take slack out of belt (Comes with kit linked) https://a.co/d/hmIUbOe
-- **Belt Clamp** Used to hold the belt together (Comes with kit linked) https://a.co/d/hmIUbOe
-- **5mm Shaft** used to hold the idler pulled https://a.co/d/gsGsmQL
-- **5mm Flanged Shaft Coupler** used to hold shaft for idler https://a.co/d/18vFdbL
-- **Stepper Motor Mount** used to hold stepper motor to wall https://a.co/d/9G7hsNz
-- **Shaft coupler mount**  used to hold idler components to wall ( i custom made this out of the old curtain rod holder i had drilling a hole for screws)
-
-
-## Pin Mapping
-
-| Function | ESP32-C3 GPIO | A4988 Pin |
-|----------|---------------|-----------|
-| ENABLE | 0 | EN |
-| MS1 (Microstep 1) | 1 | MS1 |
-| MS2 (Microstep 2) | 2 | MS2 |
-| MS3 (Microstep 3) | 3 | MS3 |
-| RESET | 4 | RST |
-| DIRECTION | 6 | DIR |
-| SLEEP | 7 | SLP |
-| STATUS LED | 8 | (Onboard LED) |
-| RESET BUTTON | 9 | (Onboard BOOT button) |
-| STEP | 10 | STEP |
-
-### Motor Wiring
-Connect your bipolar stepper motor to the A4988:
-- **Coil 1** → A4988 terminals 1A & 1B
-- **Coil 2** → A4988 terminals 2A & 2B
-
-**If motor runs backwards:** turn the connector over and plug it back in.
-
-## Installation
-
-### Arduino IDE Setup
-
-1. **Install ESP32 Board Support:**
-   - File → Preferences → Additional Board Manager URLs
-   - Add: `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`
-   - Tools → Board → Boards Manager → Search "ESP32" → Install
-
-2. **Install Required Libraries:**
-   ```
-   - WiFiManager by tzapu
-   - PubSubClient by Nick O'Leary
-   - ArduinoJson by Benoit Blanchon
-   - ESPAsyncWebServer by lacamera
-   - AsyncTCP by dvarrel
-   - MycilaWebSerial by Mathieu Carbou
-   ```
-
-3. **Board Configuration:**
-   - Board: "ESP32C3 Dev Module"
-   - Upload Speed: 921600
-   - USB CDC On Boot: "Enabled"
-   - Flash Size: 4MB
-
-4. **Upload:**
-   - Open `CurtainController.ino`
-   - Select correct COM port
-   - Click Upload
+## Arduino IDE Setup
 
 ## Initial Setup
 
