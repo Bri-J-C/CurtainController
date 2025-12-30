@@ -73,15 +73,34 @@ The A4988 has a potentiometer for current limiting:
 ```
  
 
-## Wiring Diagram
+## Wiring
 
-### Text-Based Connection Map (gameFAQ style) 
+Pin Mapping
+
+| Function | ESP32-C3 GPIO | A4988 Pin |
+|----------|---------------|-----------|
+| ENABLE | 0 | EN |
+| MS1 (Microstep 1) | 1 | MS1 |
+| MS2 (Microstep 2) | 2 | MS2 |
+| MS3 (Microstep 3) | 3 | MS3 |
+| RESET | 4 | RST |
+| DIRECTION | 6 | DIR |
+| SLEEP | 7 | SLP |
+| STATUS LED | 8 | (Onboard LED) |
+| RESET BUTTON | 9 | (Onboard BOOT button) |
+| STEP | 10 | STEP |
+
+ Motor Wiring
+- **Coil 1** → A4988 terminals 1A & 1B
+- **Coil 2** → A4988 terminals 2A & 2B
+
+## Diagram
+
 #### IMPORTANT NOTES
        -  This view is from the top down. wiring is done from underneath so it will be opposite in practice.
-       -  Used headers to socket the componnents so they could be removed.
+       -  Used headers to socket the components so they could be removed.
        -  Pulled the pins out of the socket NOT the esp32 for GPIO pins 20 and 21 to make wiring easier.
 
-wiring goes under the componenets
 
 ```
                                
@@ -119,6 +138,7 @@ wiring goes under the componenets
                                                     | PowerSupply |
                                                     └─────────────┘
 ```
+
 
 ## Solder Connections
 ![alt text](https://github.com/Bri-J-C/CurtainController/blob/main/solder_underneath.jpg)
