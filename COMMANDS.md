@@ -58,7 +58,7 @@ stop
 ```
 
 
-
+## Commands - Detailed
 
 
 ### Movement Commands
