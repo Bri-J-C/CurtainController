@@ -2,26 +2,28 @@
 
 ## Bill of Materials (BOM)
 
-### Required Components
+### Core Components
+- **ESP32-C3 Super Mini** development board https://a.co/d/arRZOZd
+- **A4988 Stepper Motor Driver** module https://a.co/d/e3AHq4l
+- **Bipolar Stepper Motor** (200 steps/revolution typical) https://a.co/d/01f4S5y
+- **12-24V Power Supply** (2A+ recommended for motor) i have a ton of these laying around.
+- **Buck Converter** for ESP32 5v Power https://a.co/d/2wXIIM7
+- **Perf Board** Used this kit, which included headers, pins, and terminal blocks which are all necessary for this project. https://a.co/d/gyRBBOJ
 
-| Component | Quantity | Notes |
-|-----------|----------|-------|
-| ESP32-C3 Super Mini | 1 | Development board with onboard USB-C |
-| A4988 Stepper Driver | 1 | Includes heat sink recommended |
-| Bipolar Stepper Motor | 1 | NEMA 17 typical, 200 steps/rev |
-| 12-24V Power Supply | 1 | 2A minimum, 3A+ recommended |
-| Buck Converter | 1 | For ESP32 and A4899 Power |
+### Optional
+- Capacitor (100µF) across motor power supply for stability ( i didnt use but read youre supposed to)
+- Heat sink for A4988 driver (Comes with module linked)
 
-
-
-### Optional Components
-
-| Component | Purpose |
-|-----------|---------|
-| Heat Sink | For A4988 driver cooling |
-| Enclosure | Project box for finished installation |
-| Screw Terminals | Easier motor connection |
-| Electrolytic Capacitor (Optional) | 1 | 100µF 25V, across motor power |
+### Curtain Components 
+- **Curtains**
+- **Curtain Tracks** Need to be as low friction as possible to take full advantage of quiet motor operation. https://a.co/d/g6LfgsY
+- **GT2 Timing Belt 6mm Width** used as the pulley to move curtains (comes with kit linked) https://a.co/d/hmIUbOe
+- **5mm Bore Belt Pulley Wheel** Pulley attached to motor(comes with kit linked) https://a.co/d/hmIUbOe
+- **5mm Idler Pulley** Pulley on shaft(Comes with kit linked) https://a.co/d/hmIUbOe
+- **Belt Tensioner** Used to take slack out of belt (Comes with kit linked) https://a.co/d/hmIUbOe
+- **Belt Clamp** Used to hold the belt together (Comes with kit linked) https://a.co/d/hmIUbOe
+- **Stepper Motor Mount** used to hold stepper motor to wall https://a.co/d/9G7hsNz
+- **idler pulley mount**  used to hold idler components to wall ( i custom made this out of the old curtain rod holder i had drilling a hole for screw and nut)
 
 ## A4988 Driver Module
 
@@ -56,18 +58,18 @@ The A4988 has a potentiometer for current limiting:
 
 ### Pinout Reference
 ```
-          ┌──────────────────────────────────┐
-          │              ┌────┐              │
-          │              └────┘              │
-       5  │●                                ●│ 5V
-       6  │●                                ●│ GND
-       7  │●                                ●│ 3V3
- (LED) 8  │●                                ●│ 4
-(BOOT) 9  │●                                ●│ 3
-       10 │●                                ●│ 2  
-       20 │●                                ●│ 1
-       21 │●                                ●│ 0
-          └──────────────────────────────────┘
+          ┌───────────────────────────┐
+          │           ┌────┐          │
+          │           └────┘          │
+       5  │●                         ●│ 5V
+       6  │●                         ●│ GND
+       7  │●                         ●│ 3V3
+ (LED) 8  │●                         ●│ 4
+(BOOT) 9  │●                         ●│ 3
+       10 │●                         ●│ 2  
+       20 │●                         ●│ 1
+       21 │●                         ●│ 0
+          └───────────────────────────┘
 ```
  
 
