@@ -6,6 +6,59 @@ Complete reference for all available commands via WebSerial and MQTT.
 
 Access WebSerial at: `http://<device-ip>/webserial` or `http://<hostname>.local/webserial`
 
+
+## Commands
+
+### Movement Commands
+```
+open                    - Open curtain fully
+close                   - Close curtain fully
+stop                    - Stop current movement
+position:<steps>        - Move to specific position (0 to steps_per_revolution)
+```
+
+### Configuration Commands
+```
+set:speed:<us>          - Set delay between steps (2-10000 microseconds per step)
+set:mode:<0-4>          - Set microstepping mode
+set:steps:<n>           - Set steps per revolution (1-20000)
+set:position:<n>        - Reset current position counter
+set:sleep:<ms>          - Set motor sleep timeout (0-300000 ms)
+set:hostname:<name>     - Set device hostname (requires reboot)
+```
+
+### Information Commands
+```
+status                  - Show current system status
+config                  - Show configuration
+wifi                    - Show WiFi information
+mqtt                    - Show MQTT information
+```
+
+### Utility Commands
+```
+reset_driver            - Pulse A4988 RESET pin
+ha_discovery            - Republish Home Assistant discovery
+restart                 - Restart ESP32
+led:on                  - Turn STATUS LED on
+led:off                 - Turn STATUS LED off
+help                    - Show command list
+```
+
+### MQTT Commands
+
+Send commands via MQTT to `<root>/cmd` topic:
+```
+open
+close
+stop
+<position_percentage>   - Send number 0-100 to set position
+```
+
+
+
+
+
 ### Movement Commands
 
 #### `open`
@@ -461,12 +514,3 @@ Fix: Use valid hostname characters
 - Increase speed (lower delay value)
 
 ---
-
-## Tips
-
-- **Testing:** Always test new settings with small movements first
-- **Documentation:** Note your optimal settings for reference
-- **Backup:** Write down working configuration before changes
-- **Mechanical:** Check for binding before adjusting speed/current
-- **Safety:** Use `stop` command to halt runaway movement
-- **Calibration:** Recalibrate position if drift occurs over time
