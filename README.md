@@ -1,6 +1,6 @@
 # CurtainController
 
-ESP32-C3 based smart curtain controller with MQTT integration, Wifi Configuration, Home Assistant discovery, and WebSerial control interface, and OTA.
+ESP32-C3 based smart curtain controller with MQTT integration, Wifi Configuration, Home Assistant discovery, WebSerial control interface, and OTA.
 
 ## Features
 
