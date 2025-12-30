@@ -122,7 +122,7 @@ wiring goes under the componenets
 
 
 ## PCB Layout
-![alt text](https://github.com/Bri-J-C/CurtainController/blob/main/top%20layout.jpg)
+![alt text](https://github.com/Bri-J-C/CurtainController/blob/main/top_layout.jpg)
 
 ## Idler Bracket
 ![alt text](https://github.com/Bri-J-C/CurtainController/blob/main/idler_bracket.jpg)
