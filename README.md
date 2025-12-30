@@ -13,10 +13,11 @@ ESP32-C3 based smart curtain controller with MQTT integration, Wifi Configuratio
 - **LED Control** - Manual control of onboard STATUS LED
 - **Factory Reset** - 5-second button press for complete device reset
 - **WiFi Manager** - Easy WiFi configuration via captive portal
+- **Status Updates - Publishes real time status updates used to update item state
 
 
 ## Parts List And Construction
-[Hardware Page](https://github.com/Bri-J-C/CurtainController/blob/main/HARDWARE.md)
+   - [Hardware Page](https://github.com/Bri-J-C/CurtainController/blob/main/HARDWARE.md)
 
 ## Arduino IDE Setup
 
@@ -103,61 +104,6 @@ Default settings work for most applications, but can be adjusted:
    - Stalls under load
 5. Typical range: 800-1500µs for quiet, reliable operation ive found
 
-## Commands
-
-### Movement Commands
-```
-open                    - Open curtain fully
-close                   - Close curtain fully
-stop                    - Stop current movement
-position:<steps>        - Move to specific position (0 to steps_per_revolution)
-```
-
-### Configuration Commands
-```
-set:speed:<us>          - Set delay between steps (2-10000 microseconds per step)
-set:mode:<0-4>          - Set microstepping mode
-set:steps:<n>           - Set steps per revolution (1-20000)
-set:position:<n>        - Reset current position counter
-set:sleep:<ms>          - Set motor sleep timeout (0-300000 ms)
-set:hostname:<name>     - Set device hostname (requires reboot)
-```
-
-### Information Commands
-```
-status                  - Show current system status
-config                  - Show configuration
-wifi                    - Show WiFi information
-mqtt                    - Show MQTT information
-```
-
-### Utility Commands
-```
-reset_driver            - Pulse A4988 RESET pin
-ha_discovery            - Republish Home Assistant discovery
-restart                 - Restart ESP32
-led:on                  - Turn STATUS LED on
-led:off                 - Turn STATUS LED off
-help                    - Show command list
-```
-
-### MQTT Commands
-
-Send commands via MQTT to `<root>/cmd` topic:
-```
-open
-close
-stop
-<position_percentage>   - Send number 0-100 to set position
-```
-
-## Factory Reset
-
-Hold the onboard BOOT button (GPIO 9) for 5 seconds:
-1. LED starts blinking after 1 second (hold)
-2. LED blinks rapidly 10 times after 5 seconds (reset confirmed)
-3. All settings cleared, WiFi reset
-4. Device reboots into setup mode
 
 ## Troubleshooting
 
