@@ -77,9 +77,9 @@ The A4988 has a potentiometer for current limiting:
 
 ### Text-Based Connection Map (gameFAQ style) 
 #### IMPORTANT NOTES
-           -  This view is from the top down. wiring is done from underneath so it will be opposite in practice
-           -  Used headers to socket the componnents so they could be removed
-           -  Pulled the pins out of the socket NOT the esp32 for GPIO pins 20 and 21 to make wiring easier as they are not needed
+       -  This view is from the top down. wiring is done from underneath so it will be opposite in practice.
+       -  Used headers to socket the componnents so they could be removed.
+       -  Pulled the pins out of the socket NOT the esp32 for GPIO pins 20 and 21 to make wiring easier.
 
 wiring goes under the componenets
 
@@ -119,6 +119,16 @@ wiring goes under the componenets
                                                     | PowerSupply |
                                                     └─────────────┘
 ```
+
+
+## PCB Layout
+![alt text](https://github.com/Bri-J-C/CurtainController/blob/main/top%20layout.jpg)
+
+## Idler Bracket
+![alt text](https://github.com/Bri-J-C/CurtainController/blob/main/idler_bracket.jpg)
+#### Note: 
+    This is just the old curtain bracket, screw and nuts that come with the stepper motor mounts.
+    Drilled hole JUST larger than the nut so that when tightening together it sat itself in the hole to prevent unscrewing itself.
 
 
 ### Motor Specifications
