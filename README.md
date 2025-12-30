@@ -115,7 +115,7 @@ position:<steps>        - Move to specific position (0 to steps_per_revolution)
 
 ### Configuration Commands
 ```
-set:speed:<us>          - Set speed (2-10000 microseconds per step)
+set:speed:<us>          - Set delay between steps (2-10000 microseconds per step)
 set:mode:<0-4>          - Set microstepping mode
 set:steps:<n>           - Set steps per revolution (1-20000)
 set:position:<n>        - Reset current position counter
