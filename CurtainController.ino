@@ -44,7 +44,7 @@ int steps_since_last_save = 0;
 const int STEPS_BETWEEN_SAVES = 50;
 
 // Configurable parameters
-int step_delay_us = 2000;  // Constant speed (microseconds between steps)
+int step_delay_us = 2000;  // (microseconds between steps)
 int stepping_mode = 4;     // Default to 1/16 microstepping
 bool motor_sleeping = true;
 unsigned long motor_sleep_timeout = 30000;
@@ -116,8 +116,6 @@ String mqtt_stat_topic;
 String mqtt_position_topic;
 String mqtt_config_topic;
 String ws_pending_command;
-// Note: WebSerial doesn't have built-in password protection
-// Access control should be done at network level (WiFi password, firewall, VPN)
 
 // ============================================================================
 // FORWARD DECLARATIONS
@@ -176,12 +174,12 @@ void cmd_led_off(const String& param);
 // ============================================================================
 
 void ws_println(const String& s) {
-  WebSerial.println(s);   // call WebSerial directly
+  WebSerial.println(s);   
   delay(1);               // small yield for async send
 }
 
 void ws_print(const String& s) {
-  WebSerial.print(s);     // call WebSerial directly
+  WebSerial.print(s);     
   delay(1);
 }
 
@@ -191,7 +189,7 @@ void ws_printf(const char* fmt, ...) {
   va_start(args, fmt);
   vsnprintf(buffer, sizeof(buffer), fmt, args);
   va_end(args);
-  WebSerial.print(buffer);  // again, direct
+  WebSerial.print(buffer); 
   delay(1);
 }
 
@@ -223,7 +221,7 @@ void setup_a4988() {
   // Set safe states
   digitalWrite(DIR_PIN, LOW);
   digitalWrite(STEP_PIN, LOW);
-  digitalWrite(RESET_PIN, HIGH);    // RESET should always be HIGH
+  digitalWrite(RESET_PIN, HIGH); 
   
   // Set initial microstepping mode
   set_microstepping_mode(stepping_mode);
@@ -914,7 +912,7 @@ void process_command(const String& cmd) {
         return;
       }
     } else {
-      // Simple command
+      
       if (command == cmd_name) {
         Serial.printf("[Command] Matched: '%s'\n", cmd_name.c_str());
         commands[i].handler("");
