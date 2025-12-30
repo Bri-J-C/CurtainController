@@ -105,7 +105,12 @@ Connect your bipolar stepper motor to the A4988:
    - Device hostname
    - MQTT broker IP and port
    - MQTT username/password (optional)
-   - MQTT root topic (e.g., `home/bedroom/curtain`) child topics will be created from this in code ie: home/bedroom/curtain/(status && position && cmd)
+   - MQTT root topic (e.g., `home/bedroom/curtain`) child topics will be created from this in code ie:
+     
+          home/bedroom/curtain/status
+          home/bedroom/curtain/cmd
+          home/bedroom/curtain/position
+     
    - Steps per revolution (default: 2000)
    - OTA password (optional)
 6. Click Save
@@ -133,6 +138,7 @@ The controller automatically publishes Home Assistant MQTT discovery on first co
 - Discovery topic: `homeassistant/cover/<hostname>/config`
 - Appears as a "Cover" entity in Home Assistant
 - Supports: open, close, stop, set position
+- also works for openhab, just need to create item from the channel this creates.
 
 ## Configuration
 
