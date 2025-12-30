@@ -29,7 +29,7 @@ ESP32-C3 based smart curtain controller with MQTT integration, Wifi Configuratio
    - [Configuration](https://github.com/Bri-J-C/CurtainController/blob/main/CONFIGURATION.md)
      
 ## Technical Details
-   -[Technical Details](https://github.com/Bri-J-C/CurtainController/blob/main/TECHNICALDETAILS.md)
+   - [Technical Details](https://github.com/Bri-J-C/CurtainController/blob/main/TECHNICALDETAILS.md)
    
 ## License
 
