@@ -56,14 +56,14 @@ set:speed:2000
 - **Range:** 2-10000 microseconds
 - **Default:** 2000µs
 - **Lower values** = faster movement (may skip steps if too low)
-- **Higher values** = slower movement (smoother, more torque)
+- **Higher values** = slower movement (more torque, can make operation louder)
 - Saved to flash (persists across reboots)
 
 **Examples:**
 ```
-set:speed:500    # Very fast (test for skipping)
+set:speed:200    # Very fast (test for skipping)
 set:speed:2000   # Default
-set:speed:4000   # Slower, more reliable
+
 ```
 
 #### `set:mode:<mode>`
@@ -73,27 +73,24 @@ set:mode:4
 ```
 - **Range:** 0-4
 - **Modes:**
-  - `0` = Full step (1/1) - Coarse, loud
-  - `1` = Half step (1/2) - Medium
-  - `2` = Quarter step (1/4) - Smoother
-  - `3` = Eighth step (1/8) - Very smooth
+  - `0` = Full step (1/1) - Most torque, loudest
+  - `1` = Half step (1/2)
+  - `2` = Quarter step (1/4)
+  - `3` = Eighth step (1/8)
   - `4` = Sixteenth step (1/16) - Smoothest, quietest (default)
 - Saved to flash
-- Higher modes = smoother/quieter but need more steps
 
 #### `set:steps:<number>`
-Sets total steps per full revolution.
+Sets total steps taken.
 ```
 set:steps:3200
 ```
 - **Range:** 1-20000 steps
 - **Default:** 2000
-- **Calculation:** `motor_steps × microstepping_factor`
-  - Example: 200 step motor × 16 microstepping = 3200
 - Saved to flash
 - Adjust when changing motor or microstepping mode
 
-#### `set:position:<steps>`
+#### `set:position:<step>`
 Resets the current position counter (calibration).
 ```
 set:position:0
