@@ -14,7 +14,7 @@ ESP32-C3 based smart curtain controller with MQTT integration, Wifi Configuratio
 - **LED Control** - Manual control of onboard STATUS LED
 - **Factory Reset** - 5-second button press for complete device reset
 - **WiFi Manager** - Easy WiFi configuration via captive portal
-- **Status Updates - Publishes real time status updates used to update item state
+- **Status Updates** - Publishes real time status updates used to update item state
 
 
 ## Parts List And Construction
