@@ -646,7 +646,7 @@ void cmd_set_mode(const String& param) {
 
 void cmd_set_steps(const String& param) {
   int value = param.toInt();
-  if (value > 0 && value <= 20000) {
+  if (value > 0 && value <= 100000) {
     steps_per_revolution = value;
     preferences.putInt("steps_per_rev", steps_per_revolution);
     Serial.printf("[Config] Steps per revolution: %d\n", steps_per_revolution);
@@ -654,8 +654,8 @@ void cmd_set_steps(const String& param) {
     
     publish_config();
   } else {
-    Serial.println("[ERROR] Steps must be 1-20000");
-    ws_println("[ERROR] Steps must be 1-20000");
+    Serial.println("[ERROR] Steps must be 1-100000");
+    ws_println("[ERROR] Steps must be 1-100000");
     
   }
 }
@@ -983,8 +983,8 @@ void setup_wifi_manager() {
   device_hostname = preferences.getString("hostname", "ESP32-Curtain");
   mqtt_server = preferences.getString("mqtt_server", "10.0.0.8");
   mqtt_port = preferences.getInt("mqtt_port", 1883);
-  mqtt_user = preferences.getString("mqtt_user", "");
-  mqtt_password = preferences.getString("mqtt_pass", "");
+  mqtt_user = preferences.getString("mqtt_user", "homeassistant");
+  mqtt_password = preferences.getString("mqtt_pass", "MQTTP@ssw0rd!");
   String mqtt_root_topic = preferences.getString("mqtt_root_topic", "home/firstfloor/test/curtains");
   String ota_password = preferences.getString("ota_pass", "");
   int steps_pref = preferences.getInt("steps_per_rev", steps_per_revolution);
