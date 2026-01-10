@@ -44,14 +44,22 @@ int steps_since_last_save = 0;
 const int STEPS_BETWEEN_SAVES = 50;
 
 // Configurable parameters
-int step_delay_us = 2000;  // (microseconds between steps)
+int step_delay_us = 2000;  // Constant speed (microseconds between steps)
 int stepping_mode = 4;     // Default to 1/16 microstepping
 bool motor_sleeping = true;
 unsigned long motor_sleep_timeout = 30000;
 unsigned long last_motor_activity = 0;
 
-// A4988 Microstepping modes
-const uint8_t MICROSTEP_CONFIG[5][3] = {
+// Driver type selection
+enum DriverType {
+  DRIVER_A4988,
+  DRIVER_TMC2208,
+  DRIVER_TMC2209
+};
+DriverType driver_type = DRIVER_A4988;  // Default driver
+
+// A4988 Microstepping modes (3 pins: MS1, MS2, MS3)
+const uint8_t A4988_MICROSTEP_CONFIG[5][3] = {
   {LOW,  LOW,  LOW},   // Mode 0: Full step
   {HIGH, LOW,  LOW},   // Mode 1: Half step
   {LOW,  HIGH, LOW},   // Mode 2: Quarter step
@@ -59,12 +67,33 @@ const uint8_t MICROSTEP_CONFIG[5][3] = {
   {HIGH, HIGH, HIGH}   // Mode 4: Sixteenth step
 };
 
-const char* MICROSTEP_NAMES[5] = {
+const char* A4988_MICROSTEP_NAMES[5] = {
   "Full (1/1)",
   "Half (1/2)",
   "Quarter (1/4)",
   "Eighth (1/8)",
   "Sixteenth (1/16)"
+};
+
+// TMC2208/2209 Microstepping modes (2 pins: MS1, MS2 only - standalone mode)
+const uint8_t TMC_MICROSTEP_CONFIG[4][2] = {
+  {LOW,  LOW},   // Mode 0: 1/8 microstepping (default)
+  {HIGH, LOW},   // Mode 1: 1/2 microstepping
+  {LOW,  HIGH},  // Mode 2: 1/4 microstepping
+  {HIGH, HIGH}   // Mode 3: 1/16 microstepping
+};
+
+const char* TMC_MICROSTEP_NAMES[4] = {
+  "Eighth (1/8)",      // TMC default
+  "Half (1/2)",
+  "Quarter (1/4)",
+  "Sixteenth (1/16)"
+};
+
+const char* DRIVER_NAMES[3] = {
+  "A4988",
+  "TMC2208",
+  "TMC2209"
 };
 
 // Reset button with debouncing
@@ -116,12 +145,14 @@ String mqtt_stat_topic;
 String mqtt_position_topic;
 String mqtt_config_topic;
 String ws_pending_command;
+// Note: WebSerial doesn't have built-in password protection
+// Access control should be done at network level (WiFi password, firewall, VPN)
 
 // ============================================================================
 // FORWARD DECLARATIONS
 // ============================================================================
 
-void setup_a4988();
+void setup_stepper_driver();
 void setup_wifi_manager();
 void setup_mqtt();
 void setup_ota();
@@ -164,9 +195,11 @@ void cmd_ha_discovery(const String& param);
 void cmd_config(const String& param);
 void cmd_status(const String& param);
 void cmd_restart(const String& param);
+void cmd_reconfigure(const String& param);
 void cmd_help(const String& param);
 void cmd_led_on(const String& param);
 void cmd_led_off(const String& param);
+void cmd_set_driver(const String& param);
 
 
 // ============================================================================
@@ -174,12 +207,12 @@ void cmd_led_off(const String& param);
 // ============================================================================
 
 void ws_println(const String& s) {
-  WebSerial.println(s);   
+  WebSerial.println(s);   // call WebSerial directly
   delay(1);               // small yield for async send
 }
 
 void ws_print(const String& s) {
-  WebSerial.print(s);     
+  WebSerial.print(s);     // call WebSerial directly
   delay(1);
 }
 
@@ -189,7 +222,7 @@ void ws_printf(const char* fmt, ...) {
   va_start(args, fmt);
   vsnprintf(buffer, sizeof(buffer), fmt, args);
   va_end(args);
-  WebSerial.print(buffer); 
+  WebSerial.print(buffer);  // again, direct
   delay(1);
 }
 
@@ -199,58 +232,94 @@ void ws_printf(const char* fmt, ...) {
 // MOTOR CONTROL
 // ============================================================================
 
-void setup_a4988() {
-  // CRITICAL: Disable and sleep motor FIRST to prevent boot movement
-  // Configure control pins first
+void setup_stepper_driver() {
+  // CRITICAL: Disable motor FIRST to prevent boot movement
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, HIGH);   // DISABLE motor immediately (HIGH = disabled)
-  pinMode(SLEEP_PIN, OUTPUT);
-  digitalWrite(SLEEP_PIN, LOW);     // SLEEP motor immediately
+  
+  if (driver_type == DRIVER_A4988) {
+    // A4988 specific setup
+    pinMode(SLEEP_PIN, OUTPUT);
+    digitalWrite(SLEEP_PIN, LOW);     // SLEEP motor immediately
+    pinMode(RESET_PIN, OUTPUT);
+    digitalWrite(RESET_PIN, HIGH);    // RESET should always be HIGH
+  } else {
+    // TMC2208/2209 specific setup
+    // MS3 pin is PDN_UART on TMC - must be HIGH for standalone mode
+    pinMode(MS3_PIN, OUTPUT);
+    digitalWrite(MS3_PIN, HIGH);      // Enable standalone mode
+    // SLEEP_PIN and RESET_PIN not used on TMC, but set them anyway
+    pinMode(SLEEP_PIN, OUTPUT);
+    digitalWrite(SLEEP_PIN, HIGH);    // Not connected, keep high
+    pinMode(RESET_PIN, OUTPUT);
+    digitalWrite(RESET_PIN, HIGH);    // Not connected, keep high
+  }
   
   // Small delay to ensure motor is fully disabled
   delay(10);
   
-  // Now configure remaining pins safely
+  // Configure common pins
   pinMode(DIR_PIN, OUTPUT);
   pinMode(STEP_PIN, OUTPUT);
-  pinMode(RESET_PIN, OUTPUT);
   pinMode(MS1_PIN, OUTPUT);
   pinMode(MS2_PIN, OUTPUT);
-  pinMode(MS3_PIN, OUTPUT);
+  if (driver_type == DRIVER_A4988) {
+    pinMode(MS3_PIN, OUTPUT);
+  }
   
   // Set safe states
   digitalWrite(DIR_PIN, LOW);
   digitalWrite(STEP_PIN, LOW);
-  digitalWrite(RESET_PIN, HIGH); 
   
   // Set initial microstepping mode
   set_microstepping_mode(stepping_mode);
   
-  Serial.println("[A4988] Driver configured");
-  Serial.printf("[A4988] Mode: %s\n", MICROSTEP_NAMES[stepping_mode]);
-  Serial.println("[A4988] Motor DISABLED and SLEEPING on boot");
+  Serial.printf("[%s] Driver configured\n", DRIVER_NAMES[driver_type]);
+  if (driver_type == DRIVER_A4988) {
+    Serial.printf("[%s] Mode: %s\n", DRIVER_NAMES[driver_type], A4988_MICROSTEP_NAMES[stepping_mode]);
+    Serial.printf("[%s] Motor DISABLED and SLEEPING on boot\n", DRIVER_NAMES[driver_type]);
+  } else {
+    Serial.printf("[%s] Mode: %s\n", DRIVER_NAMES[driver_type], TMC_MICROSTEP_NAMES[stepping_mode]);
+    Serial.printf("[%s] Motor DISABLED on boot (Standalone mode)\n", DRIVER_NAMES[driver_type]);
+  }
 }
 
 void set_microstepping_mode(int mode) {
-  if (mode < 0 || mode > 4) {
-    Serial.printf("[ERROR] Invalid microstepping mode: %d\n", mode);
+  int max_mode = (driver_type == DRIVER_A4988) ? 4 : 3;
+  
+  if (mode < 0 || mode > max_mode) {
+    Serial.printf("[ERROR] Invalid microstepping mode: %d (valid: 0-%d for %s)\n", 
+                  mode, max_mode, DRIVER_NAMES[driver_type]);
     return;
   }
   
-  digitalWrite(MS1_PIN, MICROSTEP_CONFIG[mode][0]);
-  digitalWrite(MS2_PIN, MICROSTEP_CONFIG[mode][1]);
-  digitalWrite(MS3_PIN, MICROSTEP_CONFIG[mode][2]);
-  
-  stepping_mode = mode;
-  Serial.printf("[A4988] Microstepping: %s\n", MICROSTEP_NAMES[mode]);
+  if (driver_type == DRIVER_A4988) {
+    // A4988 uses 3 pins: MS1, MS2, MS3
+    digitalWrite(MS1_PIN, A4988_MICROSTEP_CONFIG[mode][0]);
+    digitalWrite(MS2_PIN, A4988_MICROSTEP_CONFIG[mode][1]);
+    digitalWrite(MS3_PIN, A4988_MICROSTEP_CONFIG[mode][2]);
+    stepping_mode = mode;
+    Serial.printf("[%s] Microstepping: %s\n", DRIVER_NAMES[driver_type], A4988_MICROSTEP_NAMES[mode]);
+  } else {
+    // TMC2208/2209 uses 2 pins: MS1, MS2 (MS3 is PDN_UART, must stay HIGH)
+    digitalWrite(MS1_PIN, TMC_MICROSTEP_CONFIG[mode][0]);
+    digitalWrite(MS2_PIN, TMC_MICROSTEP_CONFIG[mode][1]);
+    digitalWrite(MS3_PIN, HIGH);  // Keep PDN_UART HIGH for standalone mode
+    stepping_mode = mode;
+    Serial.printf("[%s] Microstepping: %s\n", DRIVER_NAMES[driver_type], TMC_MICROSTEP_NAMES[mode]);
+  }
 }
 
 void pulse_reset() {
-  Serial.println("[A4988] Pulsing RESET pin");
-  digitalWrite(RESET_PIN, LOW);
-  delayMicroseconds(10);
-  digitalWrite(RESET_PIN, HIGH);
-  delay(2);
+  if (driver_type == DRIVER_A4988) {
+    Serial.println("[A4988] Pulsing RESET pin");
+    digitalWrite(RESET_PIN, LOW);
+    delayMicroseconds(10);
+    digitalWrite(RESET_PIN, HIGH);
+    delay(2);
+  } else {
+    Serial.printf("[%s] RESET not available in standalone mode\n", DRIVER_NAMES[driver_type]);
+  }
 }
 
 void stop_motor() {
@@ -259,7 +328,10 @@ void stop_motor() {
 
 void wake_motor() {
   if (motor_sleeping) {
-    digitalWrite(SLEEP_PIN, HIGH);   // Wake from sleep
+    if (driver_type == DRIVER_A4988) {
+      digitalWrite(SLEEP_PIN, HIGH);   // Wake from sleep
+    }
+    // TMC drivers don't have SLEEP pin in standalone mode
     digitalWrite(ENABLE_PIN, LOW);   // Enable driver
     delayMicroseconds(2);            // tWAKE min
     motor_sleeping = false;
@@ -272,7 +344,10 @@ void sleep_motor() {
   if (!motor_sleeping && !is_moving) {
     digitalWrite(ENABLE_PIN, HIGH);  // Disable first
     delayMicroseconds(1);
-    digitalWrite(SLEEP_PIN, LOW);    // Then sleep
+    if (driver_type == DRIVER_A4988) {
+      digitalWrite(SLEEP_PIN, LOW);    // Then sleep
+    }
+    // TMC drivers don't have SLEEP pin in standalone mode - just disabling is enough
     motor_sleeping = true;
     Serial.println("[Motor] Sleep");
   }
@@ -440,13 +515,11 @@ void publish_ha_discovery() {
   doc["state_topic"] = mqtt_stat_topic;
   doc["position_topic"] = mqtt_position_topic;
   doc["set_position_topic"] = mqtt_command_topic;
-  doc["availability_topic"] = mqtt_stat_topic;
+  // Removed availability_topic - it was conflicting with state_topic
   
   doc["payload_open"] = "open";
   doc["payload_close"] = "close";
   doc["payload_stop"] = "stop";
-  doc["payload_available"] = "online";
-  doc["payload_not_available"] = "offline";
   
   doc["state_open"] = "open";
   doc["state_opening"] = "opening";
@@ -455,7 +528,7 @@ void publish_ha_discovery() {
   
   doc["position_open"] = 100;
   doc["position_closed"] = 0;
-  
+  doc["device_class"] = "curtain";
   doc["optimistic"] = false;
   doc["qos"] = 1;
   doc["retain"] = true;
@@ -490,13 +563,21 @@ void publish_config() {
   StaticJsonDocument<512> doc;
   doc["step_delay_us"] = step_delay_us;
   doc["stepping_mode"] = stepping_mode;
-  doc["mode_name"] = MICROSTEP_NAMES[stepping_mode];
+  
+  // Use correct mode name based on driver type
+  if (driver_type == DRIVER_A4988) {
+    doc["mode_name"] = A4988_MICROSTEP_NAMES[stepping_mode];
+  } else {
+    doc["mode_name"] = TMC_MICROSTEP_NAMES[stepping_mode];
+  }
+  
+  doc["driver_type"] = DRIVER_NAMES[driver_type];
   doc["position"] = current_position;
   doc["sleep_timeout_ms"] = motor_sleep_timeout;
   doc["hostname"] = device_hostname;
   doc["ip"] = WiFi.localIP().toString();
   doc["steps_per_rev"] = steps_per_revolution;
-  doc["version"] = "4.0-Refactored";
+  doc["version"] = "4.1-Multi-Driver";
   
   String json;
   serializeJson(doc, json);
@@ -525,16 +606,21 @@ void connect_mqtt() {
   
   Serial.printf("[MQTT] Connecting (retry delay: %ds)...\n", mqtt_retry_delay / 1000);
   
+  // Reset watchdog before potentially blocking MQTT connection attempt
+  esp_task_wdt_reset();
+  
   String client_id = device_hostname + "_" + WiFi.macAddress();
   client_id.replace(":", "");
   
   bool connected;
   if (mqtt_user.length() > 0) {
-    connected = client.connect(client_id.c_str(), mqtt_user.c_str(), mqtt_password.c_str(),
-                              mqtt_stat_topic.c_str(), 1, true, "offline");
+    connected = client.connect(client_id.c_str(), mqtt_user.c_str(), mqtt_password.c_str());
   } else {
-    connected = client.connect(client_id.c_str(), mqtt_stat_topic.c_str(), 1, true, "offline");
+    connected = client.connect(client_id.c_str());
   }
+  
+  // Reset watchdog after MQTT connection attempt
+  esp_task_wdt_reset();
   
   if (connected) {
     Serial.println("[MQTT] ✓ Connected");
@@ -542,7 +628,16 @@ void connect_mqtt() {
     client.subscribe(mqtt_config_topic.c_str());
     Serial.printf("[MQTT] Subscribed to: %s\n", mqtt_command_topic.c_str());
     
-    publish_status("online");
+    // Publish current state based on position
+    const char* status;
+    if (current_position >= steps_per_revolution) {
+      status = "open";
+    } else if (current_position <= 0) {
+      status = "closed";
+    } else {
+      status = "partial";
+    }
+    publish_status(status);
     publish_position();
     publish_ha_discovery();
     
@@ -565,9 +660,13 @@ void setup_mqtt() {
   mqtt_position_topic = mqtt_root_topic + "/position";
   mqtt_config_topic = mqtt_command_topic + "/config";
 
+  // Set socket timeout to prevent long blocking (15 seconds)
+  espClient.setTimeout(15);
+  
   client.setBufferSize(1024);
   client.setServer(mqtt_server.c_str(), mqtt_port);
   client.setCallback(mqtt_callback);
+  client.setSocketTimeout(15);  // 15 second timeout for MQTT operations
 
   connect_mqtt();
 }
@@ -631,22 +730,31 @@ void cmd_set_speed(const String& param) {
 
 void cmd_set_mode(const String& param) {
   int value = param.toInt();
-  if (value >= 0 && value <= 4) {
+  int max_mode = (driver_type == DRIVER_A4988) ? 4 : 3;
+  
+  if (value >= 0 && value <= max_mode) {
     set_microstepping_mode(value);
     preferences.putInt("step_mode", stepping_mode);
-    ws_printf("Mode set to %d (%s)\n", stepping_mode, MICROSTEP_NAMES[stepping_mode]);
+    
+    // Use correct mode name based on driver type
+    if (driver_type == DRIVER_A4988) {
+      ws_printf("Mode set to %d (%s)\n", stepping_mode, A4988_MICROSTEP_NAMES[stepping_mode]);
+    } else {
+      ws_printf("Mode set to %d (%s)\n", stepping_mode, TMC_MICROSTEP_NAMES[stepping_mode]);
+    }
     
     publish_config();
   } else {
-    Serial.println("[ERROR] Mode must be 0-4");
-    ws_println("[ERROR] Mode must be 0-4");
+    int max_mode = (driver_type == DRIVER_A4988) ? 4 : 3;
+    Serial.printf("[ERROR] Mode must be 0-%d for %s\n", max_mode, DRIVER_NAMES[driver_type]);
+    ws_printf("[ERROR] Mode must be 0-%d for %s\n", max_mode, DRIVER_NAMES[driver_type]);
     
   }
 }
 
 void cmd_set_steps(const String& param) {
   int value = param.toInt();
-  if (value > 0 && value <= 20000) {
+  if (value > 0 && value <= 100000) {
     steps_per_revolution = value;
     preferences.putInt("steps_per_rev", steps_per_revolution);
     Serial.printf("[Config] Steps per revolution: %d\n", steps_per_revolution);
@@ -654,8 +762,8 @@ void cmd_set_steps(const String& param) {
     
     publish_config();
   } else {
-    Serial.println("[ERROR] Steps must be 1-20000");
-    ws_println("[ERROR] Steps must be 1-20000");
+    Serial.println("[ERROR] Steps must be 1-100000");
+    ws_println("[ERROR] Steps must be 1-100000");
     
   }
 }
@@ -771,10 +879,18 @@ void cmd_ha_discovery(const String& param) {
 
 void cmd_config(const String& param) {
   String output = "\n=== Configuration ===\n";
+  output += "Driver: " + String(DRIVER_NAMES[driver_type]) + "\n";
   output += "Hostname: " + device_hostname + "\n";
   output += "IP: " + WiFi.localIP().toString() + "\n";
   output += "Speed: " + String(step_delay_us) + " us/step\n";
-  output += "Mode: " + String(stepping_mode) + " (" + String(MICROSTEP_NAMES[stepping_mode]) + ")\n";
+  
+  // Show correct mode name based on driver type
+  if (driver_type == DRIVER_A4988) {
+    output += "Mode: " + String(stepping_mode) + " (" + String(A4988_MICROSTEP_NAMES[stepping_mode]) + ")\n";
+  } else {
+    output += "Mode: " + String(stepping_mode) + " (" + String(TMC_MICROSTEP_NAMES[stepping_mode]) + ")\n";
+  }
+  
   output += "Steps/Rev: " + String(steps_per_revolution) + "\n";
   output += "Position: " + String(current_position) + " (" + String((current_position * 100) / steps_per_revolution) + "%)\n";
   output += "Sleep Timeout: " + String(motor_sleep_timeout) + " ms\n";
@@ -795,6 +911,41 @@ void cmd_restart(const String& param) {
   ESP.restart();
 }
 
+void cmd_reconfigure(const String& param) {
+  Serial.println("[System] Clearing WiFi credentials...");
+  ws_println("=================================");
+  ws_println("Clearing WiFi Credentials");
+  ws_println("=================================");
+  ws_println("");
+  ws_println("Device will restart into setup mode.");
+  ws_println("");
+  ws_println("After restart:");
+  ws_println("  1. Connect to WiFi: ESP32-Curtain-Setup");
+  ws_println("  2. Password: 12345678");
+  ws_println("  3. Configuration page will open automatically");
+  ws_println("  4. Update your settings and click Save");
+  ws_println("");
+  ws_println("NOTE: Motor settings (position, speed, mode) are preserved!");
+  ws_println("");
+  ws_println("Restarting in 3 seconds...");
+  
+  delay(3000);
+  
+  // Disconnect MQTT
+  if (client.connected()) {
+    client.disconnect();
+  }
+  
+  // Use WiFiManager's resetSettings() to clear WiFi credentials only
+  WiFiManager wm;
+  wm.resetSettings();
+  
+  Serial.println("[WiFiManager] WiFi credentials cleared - restarting into setup mode");
+  
+  delay(1000);
+  ESP.restart();
+}
+
 void cmd_help(const String& param) {
   String help = "\n=== Available Commands ===\n";
   help += "Movement:\n";
@@ -809,6 +960,7 @@ void cmd_help(const String& param) {
   help += "  set:position:<n>      - Reset current position\n";
   help += "  set:sleep:<ms>        - Set motor sleep timeout (0-300000 ms)\n";
   help += "  set:hostname:<name>   - Set device hostname (requires reboot)\n";
+  help += "  set:driver:<0-2>      - Set driver type (0=A4988, 1=TMC2208, 2=TMC2209)\n";
   help += "\nInformation:\n";
   help += "  status                - Show current status\n";
   help += "  config                - Show configuration\n";
@@ -818,6 +970,7 @@ void cmd_help(const String& param) {
   help += "\nUtilities:\n";
   help += "  reset_driver          - Pulse A4988 RESET pin\n";
   help += "  restart               - Restart ESP32\n";
+  help += "  reconfigure           - Clear WiFi & reconfigure settings\n";
   help += "  led:on                - Turn STATUS LED on\n";
   help += "  led:off               - Turn STATUS LED off\n";
   help += "  help                  - Show this help\n";
@@ -837,7 +990,14 @@ void cmd_status(const String& param) {
   }
   output += "Motor: " + String(motor_sleeping ? "Sleeping" : "Awake") + "\n";
   output += "Speed: " + String(step_delay_us) + " us/step\n";
-  output += "Mode: " + String(MICROSTEP_NAMES[stepping_mode]) + "\n";
+  
+  // Use correct mode name based on driver type
+  if (driver_type == DRIVER_A4988) {
+    output += "Mode: " + String(A4988_MICROSTEP_NAMES[stepping_mode]) + "\n";
+  } else {
+    output += "Mode: " + String(TMC_MICROSTEP_NAMES[stepping_mode]) + "\n";
+  }
+  
   output += "Free Heap: " + String(ESP.getFreeHeap()) + " bytes\n";
   output += "Uptime: " + String(millis() / 1000) + " seconds\n";
   output += "==============\n";
@@ -865,6 +1025,27 @@ void cmd_led_off(const String& param) {
   
 }
 
+void cmd_set_driver(const String& param) {
+  int value = param.toInt();
+  if (value >= 0 && value <= 2) {
+    driver_type = (DriverType)value;
+    preferences.putInt("driver_type", driver_type);
+    Serial.printf("[Config] Driver type set to %s\n", DRIVER_NAMES[driver_type]);
+    ws_printf("Driver type set to %s\n", DRIVER_NAMES[driver_type]);
+    ws_println("Restart required for changes to take effect");
+    ws_println("Use 'restart' command or power cycle");
+    
+    publish_config();
+  } else {
+    Serial.println("[ERROR] Driver type must be 0-2 (0=A4988, 1=TMC2208, 2=TMC2209)");
+    ws_println("[ERROR] Driver type must be 0-2");
+    ws_println("  0 = A4988");
+    ws_println("  1 = TMC2208");
+    ws_println("  2 = TMC2209");
+    
+  }
+}
+
 const Command commands[] = {
   {"open", cmd_open, "Open curtain"},
   {"close", cmd_close, "Close curtain"},
@@ -876,6 +1057,7 @@ const Command commands[] = {
   {"set:position:", cmd_reset_position, "Reset current position"},
   {"set:sleep:", cmd_set_sleep, "Set motor sleep timeout (0-300000 ms)"},
   {"set:hostname:", cmd_set_hostname, "Set device hostname"},
+  {"set:driver:", cmd_set_driver, "Set driver type (0=A4988, 1=TMC2208, 2=TMC2209)"},
   {"wifi", cmd_wifi_info, "Show WiFi information"},
   {"mqtt", cmd_mqtt_info, "Show MQTT information"},
   {"reset_driver", cmd_reset_driver, "Pulse A4988 RESET pin"},
@@ -883,6 +1065,7 @@ const Command commands[] = {
   {"config", cmd_config, "Show configuration"},
   {"status", cmd_status, "Show status"},
   {"restart", cmd_restart, "Restart ESP32"},
+  {"reconfigure", cmd_reconfigure, "Clear WiFi & reconfigure settings"},
   {"help", cmd_help, "Show available commands"},
   {"led:on", cmd_led_on, "Turn STATUS LED on"},
   {"led:off", cmd_led_off, "Turn STATUS LED off"},
@@ -912,7 +1095,7 @@ void process_command(const String& cmd) {
         return;
       }
     } else {
-      
+      // Simple command
       if (command == cmd_name) {
         Serial.printf("[Command] Matched: '%s'\n", cmd_name.c_str());
         commands[i].handler("");
@@ -1062,6 +1245,7 @@ void handle_wifi_reconnection() {
       
     case WIFI_DISCONNECTED:
       Serial.println("[WiFi] Reconnecting...");
+      esp_task_wdt_reset();  // Reset before potentially blocking WiFi operations
       WiFi.disconnect();
       WiFi.setHostname(device_hostname.c_str());
       WiFi.begin();
@@ -1070,6 +1254,7 @@ void handle_wifi_reconnection() {
       break;
       
     case WIFI_RECONNECTING:
+      esp_task_wdt_reset();  // Reset while waiting for reconnection
       if (WiFi.status() == WL_CONNECTED) {
         Serial.println("[WiFi] ✓ Reconnected");
         Serial.printf("[WiFi] IP: %s\n", WiFi.localIP().toString().c_str());
@@ -1241,22 +1426,39 @@ void setup() {
 
   preferences.begin("curtains", false);
 
+  // Load driver type first
+  driver_type = (DriverType)preferences.getInt("driver_type", DRIVER_A4988);
+  
   current_position = preferences.getInt("position", 0);
   step_delay_us = preferences.getInt("step_delay", 2000);
   stepping_mode = preferences.getInt("step_mode", 4);
   motor_sleep_timeout = preferences.getULong("sleep_timeout", 30000);
   steps_per_revolution = preferences.getInt("steps_per_rev", 2000);
 
+  // Validate stepping_mode for driver type
+  int max_mode = (driver_type == DRIVER_A4988) ? 4 : 3;
+  if (stepping_mode > max_mode) {
+    Serial.printf("[Warning] Stepping mode %d invalid for %s, resetting to 0\n", 
+                  stepping_mode, DRIVER_NAMES[driver_type]);
+    stepping_mode = 0;  // Reset to safe default
+    preferences.putInt("step_mode", stepping_mode);
+  }
+
+  Serial.printf("[Config] Driver: %s\n", DRIVER_NAMES[driver_type]);
   Serial.printf("[Config] Position: %d\n", current_position);
   Serial.printf("[Config] Speed: %d us/step\n", step_delay_us);
-  Serial.printf("[Config] Mode: %s\n", MICROSTEP_NAMES[stepping_mode]);
+  if (driver_type == DRIVER_A4988) {
+    Serial.printf("[Config] Mode: %s\n", A4988_MICROSTEP_NAMES[stepping_mode]);
+  } else {
+    Serial.printf("[Config] Mode: %s\n", TMC_MICROSTEP_NAMES[stepping_mode]);
+  }
   Serial.printf("[Config] Steps/Rev: %d\n", steps_per_revolution);
 
   pinMode(STATUS_LED, OUTPUT);
   pinMode(RESET_BUTTON_PIN, INPUT_PULLUP);
   digitalWrite(STATUS_LED, HIGH);  // LED off (inverted)
 
-  setup_a4988();
+  setup_stepper_driver();
   setup_wifi_manager();
   setup_mdns();
   setup_webserial();
@@ -1298,13 +1500,16 @@ void loop() {
     connect_mqtt();
   }
   client.loop();
+  
+  // Reset watchdog after MQTT operations
+  esp_task_wdt_reset();
 
   if (ws_command_pending) { 
     ws_command_pending = false; 
     process_command(ws_pending_command); 
   }
-  // Auto-sleep motor after inactivity
-  if (!is_moving && (millis() - last_motor_activity > motor_sleep_timeout)) {
+  // Auto-sleep motor after inactivity (only if timeout is enabled)
+  if (!is_moving && motor_sleep_timeout > 0 && (millis() - last_motor_activity > motor_sleep_timeout)) {
     sleep_motor();
   }
 
