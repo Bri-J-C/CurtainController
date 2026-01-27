@@ -1,0 +1,70 @@
+# Arduino/ESP32
+*.hex
+*.elf
+*.map
+*.bin
+build/
+*.o
+*.a
+
+# Arduino IDE
+.build/
+.vscode/
+.pio/
+.clang_complete
+.gcc-flags.json
+
+# Platform IO
+.pioenvs
+.piolibdeps
+.platformio
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# IDE - Eclipse
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+# Credentials (if accidentally committed)
+secrets.h
+credentials.h
+config_local.h
