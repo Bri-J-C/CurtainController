@@ -14,6 +14,7 @@
 #include <ArduinoJson.h>
 #include <Preferences.h>
 #include <esp_task_wdt.h>
+#include <esp_wifi.h>
 #include <esp_system.h>
 #include <ArduinoOTA.h>
 #include "mdns.h"
@@ -1464,6 +1465,8 @@ void boot_wifi_connect() {
   }
 
   log_msg(LOG_INFO, "WIFI", "WiFi connected: %s", WiFi.localIP().toString().c_str());
+
+  esp_wifi_set_ps(WIFI_PS_NONE);
 
   esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
   if (netif) {
