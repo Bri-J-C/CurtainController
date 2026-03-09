@@ -38,11 +38,11 @@ const int MS1_PIN = 1;           // Microstepping bit 1
 const int MS2_PIN = 2;           // Microstepping bit 2
 const int MS3_PIN = 3;           // Microstepping bit 3
 const int RESET_PIN = 4;         // Reset (normally HIGH)
-const int DIR_PIN = 10;          // Direction control
+const int DIR_PIN = 6;           // Direction control
 const int SLEEP_PIN = 7;         // Sleep mode (LOW = sleep, HIGH = awake)
 const int STATUS_LED = 8;        // Onboard blue LED (inverted logic)
 const int RESET_BUTTON_PIN = 9;  // Onboard BOOT button
-const int STEP_PIN = 6;          // Step pulse
+const int STEP_PIN = 10;         // Step pulse
 
 // A4988 microstepping modes: {MS1, MS2, MS3}
 // Mode 0=Full, 1=Half, 2=Quarter, 3=Eighth, 4=Sixteenth
