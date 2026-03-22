@@ -751,7 +751,7 @@ void connect_mqtt() {
     publish_position();
     publish_status(current_position >= steps_per_revolution ? "open" :
                    current_position <= 0 ? "closed" : "stopped");
-    publish_ha_discovery();
+    publish_ha_discovery(true);
     publish_settings_state();
     mqtt_retry_delay = 2000;
   } else {
